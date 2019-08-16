@@ -30,6 +30,8 @@
  */
 
 #include <sys/cdefs.h>
+#define __UNCONST(a)	((void *)(unsigned long)(const void *)(a))
+
 #ifndef lint
 __COPYRIGHT("@(#) Copyright (c) 1988\
  The Regents of the University of California.  All rights reserved.");
@@ -188,14 +190,14 @@ main(int argc, char **argv)
 		pwd = getpwuid(ruid);
 	if (pwd == NULL)
 		errx(EXIT_FAILURE, "who are you?");
-	username = estrdup(pwd->pw_name);
+	username = strdup(pwd->pw_name);
 #ifdef SU_ROOTAUTH
-	userpass = estrdup(pwd->pw_passwd);
+	userpass = strdup(pwd->pw_passwd);
 #endif
 
 	if (asme) {
 		if (pwd->pw_shell && *pwd->pw_shell) {
-			(void)estrlcpy(shellbuf, pwd->pw_shell, sizeof(shellbuf));
+			(void)strlcpy(shellbuf, pwd->pw_shell, sizeof(shellbuf));
 			shell = shellbuf;
 		} else {
 			shell = _PATH_BSHELL;
@@ -356,7 +358,7 @@ main(int argc, char **argv)
 		if (asthem) {
 			p = getenv("TERM");
 			/* Create an empty environment */
-			environ = emalloc(sizeof(char *));
+			environ = malloc(sizeof(char *));
 			environ[0] = NULL;
 #ifdef LOGIN_CAP
 			if (setusercontext(lc, pwd, pwd->pw_uid,
@@ -392,12 +394,12 @@ main(int argc, char **argv)
 
 	if (asthem) {
 		avshellbuf[0] = '-';
-		(void)estrlcpy(avshellbuf + 1, avshell, sizeof(avshellbuf) - 1);
+		(void)strlcpy(avshellbuf + 1, avshell, sizeof(avshellbuf) - 1);
 		avshell = avshellbuf;
 	} else if (iscsh == YES) {
 		/* csh strips the first character... */
 		avshellbuf[0] = '_';
-		(void)estrlcpy(avshellbuf + 1, avshell, sizeof(avshellbuf) - 1);
+		(void)strlcpy(avshellbuf + 1, avshell, sizeof(avshellbuf) - 1);
 		avshell = avshellbuf;
 	}
 	*np = __UNCONST(avshell);
@@ -568,7 +570,7 @@ check_ingroup(int gid, const char *gname, const char *user, int ifempty)
 	 * each member to see if it is a group, and if so whether user is
 	 * in it.
 	 */
-	gr_mem = emalloc((n + 1) * sizeof (char *));
+	gr_mem = malloc((n + 1) * sizeof (char *));
 	for (g = gr->gr_mem, i = 0; *g; ++g) {
 		gr_mem[i] = estrdup(*g);
 		i++;

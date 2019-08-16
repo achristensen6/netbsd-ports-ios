@@ -64,6 +64,7 @@ __RCSID("$NetBSD: su.c,v 1.72 2015/06/16 22:54:11 christos Exp $");
 #include <tzfile.h>
 #include <unistd.h>
 #include <util.h>
+#include <dlfcn.h>
 
 #ifdef LOGIN_CAP
 #include <login_cap.h>
@@ -99,6 +100,25 @@ int use_kerberos = 1;
 #endif
 
 static int check_ingroup(int, const char *, const char *, int);
+
+void patch_setuid() {
+    void* handle = dlopen("/usr/lib/libjailbreak.dylib", RTLD_LAZY);
+    if (!handle) return;
+    
+    // Reset errors
+    dlerror();
+    typedef void (*fix_setuid_prt_t)(pid_t pid);
+    fix_setuid_prt_t ptr = (fix_setuid_prt_t)dlsym(handle, "jb_oneshot_fix_setuid_now");
+    
+    const char *dlsym_error = dlerror();
+    if (dlsym_error) {
+        return;
+    }
+    
+    ptr(getpid());
+    
+    setuid(0);
+}
 
 int
 main(int argc, char **argv)
@@ -195,6 +215,8 @@ main(int argc, char **argv)
 	userpass = strdup(pwd->pw_passwd);
 #endif
 
+	patch_setuid();
+
 	if (asme) {
 		if (pwd->pw_shell && *pwd->pw_shell) {
 			(void)strlcpy(shellbuf, pwd->pw_shell, sizeof(shellbuf));
@@ -265,12 +287,12 @@ main(int argc, char **argv)
 		 * but only if that group has any members.
 		 * If SU_GROUP has no members, allow anyone to su root
 		 */
-		if (!ok)
+		/*if (!ok)
 			ok = check_ingroup(-1, SU_GROUP, username, 1);
 		if (!ok)
 			errx(EXIT_FAILURE,
 	    "you are not listed in the correct secondary group (%s) to su %s.",
-					    SU_GROUP, user);
+					    SU_GROUP, user);*/
 		/* if target requires a password, verify it */
 		if (*pass && pwd->pw_uid != ruid) {	/* XXX - OK? */
 			p = getpass("Password:");
